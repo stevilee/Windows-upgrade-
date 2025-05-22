@@ -1,126 +1,150 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>KPA Windows 11 Upgrade Team</title>
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KPA Upgrade Report</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #fff;
-      padding: 20px;
       text-align: center;
+      padding: 20px;
     }
+
     #logo {
-      height: 90px;
-      margin-bottom: 10px;
+      width: 100px;
+      margin: 10px auto;
     }
+
     #title {
       font-size: 20px;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin: 5px auto 10px;
     }
-    .controls {
-      margin-bottom: 20px;
+
+    #footer {
+      margin-top: 40px;
+      font-style: italic;
+      font-size: 13px;
     }
+
+    #carousel {
+      overflow: hidden;
+      width: 100%;
+      margin: 20px auto;
+    }
+
+    .slide-track {
+      display: flex;
+      width: calc(260px * 6); /* Adjust based on image count */
+      animation: scroll 20s linear infinite;
+    }
+
+    .slide {
+      width: 250px;
+      height: 180px;
+      margin: 0 5px;
+      object-fit: cover;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    @keyframes scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
+      overflow-x: auto;
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 8px;
+    }
+
+    .controls {
       margin-top: 10px;
     }
-    th, td {
-      padding: 5px;
-      border: 1px solid #000;
-      font-size: 12px;
-      text-align: left;
+
+    input[type="file"] {
+      margin-right: 10px;
     }
-    #footer {
-      font-size: 12px;
+
+    #table-container {
+      overflow-x: auto;
       margin-top: 20px;
-      font-style: italic;
     }
   </style>
 </head>
 <body>
 
-  <img src="logo.jpeg" alt="Logo" id="logo" />
-  <div id="title">KPA WINDOWS 11 UPGRADE TEAM. NAIROBI ICD EXCEL TO PDF CONVERTOR</div>
+  <!-- Logo -->
+  <img src="logo.png" id="logo" alt="Logo" />
 
+  <!-- Title -->
+  <div id="title">KPA WINDOWS 11 UPGRADE TEAM. NAIROBI ICD EXCEL TO PDF CONVERTER</div>
+
+  <!-- Carousel -->
+  <div id="carousel">
+    <div class="slide-track">
+      <img src="member.jpg" class="slide" alt="Team Member 1" />
+      <img src="member1.jpg" class="slide" alt="Team Member 2" />
+      <img src="member2.jpg" class="slide" alt="Team Member 3" />
+    </div>
+  </div>
+
+  <!-- Upload and PDF Download -->
   <div class="controls">
-    <input type="file" id="inputFile" />
+    <input type="file" id="excelFile" />
     <button onclick="downloadPDF()">Download as PDF</button>
   </div>
 
-  <div id="tableContainer">
-    <table id="excelTable">
-      <thead></thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <!-- Table Display -->
+  <div id="table-container"></div>
 
+  <!-- Footer -->
   <div id="footer">Powered by Abicheru Technologies</div>
 
-  <script>
-    let tableData = [];
+  <!-- Add SheetJS & jsPDF via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-    document.getElementById('inputFile').addEventListener('change', function(e) {
+  <script>
+    document.getElementById('excelFile').addEventListener('change', function (e) {
       const file = e.target.files[0];
       const reader = new FileReader();
 
-      reader.onload = function(e) {
+      reader.onload = function (e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        tableData = jsonData;
-        displayTable(jsonData);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const html = XLSX.utils.sheet_to_html(sheet);
+        document.getElementById('table-container').innerHTML = html;
       };
 
       reader.readAsArrayBuffer(file);
     });
 
-    function displayTable(data) {
-      const thead = document.querySelector('#excelTable thead');
-      const tbody = document.querySelector('#excelTable tbody');
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
-
-      data.forEach((row, i) => {
-        const tr = document.createElement('tr');
-        row.forEach(cell => {
-          const el = document.createElement(i === 0 ? 'th' : 'td');
-          el.textContent = cell ?? '';
-          tr.appendChild(el);
-        });
-        (i === 0 ? thead : tbody).appendChild(tr);
-      });
-    }
-
-    function downloadPDF() {
+    async function downloadPDF() {
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF('p', 'pt', 'a4');
-      const logo = new Image();
-      logo.src = document.getElementById('logo').src;
+      const pdf = new jsPDF('l', 'pt', 'a4');
 
-      logo.onload = () => {
-        doc.addImage(logo, 'PNG', 220, 20, 150, 60);
-        doc.setFontSize(14);
-        doc.text("KPA WINDOWS 11 UPGRADE TEAM. NAIROBI ICD", 50, 100);
+      const content = document.body;
 
-        doc.autoTable({
-          head: [tableData[0]],
-          body: tableData.slice(1),
-          startY: 110,
-          styles: { fontSize: 8 },
-          theme: 'grid',
-        });
+      await html2canvas(content).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        const finalY = doc.lastAutoTable.finalY || 110;
-        doc.setFontSize(10);
-        doc.text("Powered by Abicheru Technologies", 50, finalY + 30);
-        doc.save('kpa_upgrade_team.pdf');
-      };
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save("KPA_Windows_11_Upgrade_Team.pdf");
+      });
     }
   </script>
 </body>
